@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RSVP – Admin</title>
+  <style>
+    :root{--accent:#ff2f73;--accent2:#d81b5a}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#faf7f9;color:#333}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #f1c1d7;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:100}
+    h1{font-size:18px;margin:0 12px 0 0;color:#b41c52}
+    .btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .2s ease}
+    .btn:hover{background:var(--accent2)}
+    .btn.secondary{background:#fff;color:#333;border:1px solid #f1c1d7}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .filters input,.filters select{padding:10px 12px;border:1px solid #f1c1d7;border-radius:8px;background:#fff}
+    main{padding:16px;max-width:1100px;margin:0 auto}
+
+    /* ===== tabela estável (sem sticky) ===== */
+    .tablewrap{
+      background:#fff;
+      border-radius:14px;
+      overflow:hidden;                 /* recorte arredondado */
+      box-shadow:0 8px 26px rgba(255,47,115,.10);
+    }
+    table{width:100%;border-collapse:collapse;background:#fff}
+    thead th{
+      background:#fff1f5;
+      border-bottom:1px solid #f1c1d7;
+      padding:12px;
+      font-size:14px;
+    }
+    tbody tr:nth-child(even){background:#fff5f8}
+    tbody td{
+      padding:10px;
+      border-bottom:1px solid #f8e0ea;
+      vertical-align:top;
+      font-size:14px;
+    }
+
+    .meta{margin:10px 0;opacity:.8}
+    .pager{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .pill{padding:6px 10px;border:1px solid #f1c1d7;border-radius:999px;background:#fff}
+    .right{margin-left:auto}
+    .sort{cursor:pointer;user-select:none}
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
+    .tag.yes{background:#e8f7ef;color:#0a7a4b;border:1px solid #bfe9d2}
+    .tag.no{background:#fde8ee;color:#a8163a;border:1px solid #f6c1d0}
+    .empty{padding:28px;text-align:center;opacity:.7}
+
+    /* ===== mobile ===== */
+    @media (max-width:760px){
+      thead{display:none}
+      tbody td{display:block}
+      tbody tr{display:block;margin:10px 0;border:1px solid #f1c1d7;border-radius:12px;background:#fff}
+      tbody td::before{content:attr(data-th) " ";font-weight:700;display:block;opacity:.7}
+    }
+
+    /* ===== (opcional) cabeçalho sticky dentro do wrapper rolável
+       Para usar, descomente este bloco e adicione max-height à tablewrap:
+       .tablewrap{overflow:auto;max-height:70vh}
+       thead th{position:sticky;top:0;z-index:1}
+    ===== */
+    /*
+    .tablewrap{overflow:auto;max-height:70vh}
+    thead th{position:sticky;top:0;z-index:1}
+    */
+  </style>
+</head>
+<body>
+<header>
+  <h1>RSVP – Admin</h1>
+  <a id="btnCsv" class="btn" href="#" target="_blank" rel="noopener">⬇️ Baixar CSV</a>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Buscar nome, email ou mensagem…" />
+    <select id="attend">
+      <option value="">Presença (todos)</option>
+      <option value="yes">Sim</option>
+      <option value="no">Não</option>
+    </select>
+    <select id="order">
+      <option value="created_at_desc">Mais recentes</option>
+      <option value="created_at_asc">Mais antigos</option>
+      <option value="name_asc">Nome A→Z</option>
+      <option value="name_desc">Nome Z→A</option>
+    </select>
+    <select id="pagesize">
+      <option>25</option><option>50</option><option>100</option>
+    </select>
+    <button id="reload" class="btn secondary">Recarregar</button>
+    <span id="total" class="pill">Total: 0</span>
+  </div>
+</header>
+
+<main>
+  <div class="meta" id="meta">Página 1 • mostrando até 25 por página</div>
+
+  <div class="tablewrap">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th class="sort" data-key="created_at">Data</th>
+          <th class="sort" data-key="name">Nome</th>
+          <th>Email</th>
+          <th class="sort" data-key="attend">Presença</th>
+          <th>Mensagem</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="5" class="empty">Carregando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <button id="prev" class="btn secondary">◀️ Anterior</button>
+    <button id="next" class="btn secondary">Próxima ▶️</button>
+    <span class="right pill" id="pageinfo"></span>
+  </div>
+</main>
+
+<script>
+/* ================== CONFIG ================== */
+const API_BASE = "http://localhost:8000"; // TROQUE para o seu domínio
+document.getElementById("btnCsv").href = `${API_BASE}/rsvp/export`;
+
+/* ================== STATE ================== */
+let raw = [];          // dados crus vindos da API
+let filtered = [];     // após filtros & ordenação
+let page = 1;
+let size = 25;
+let order = "created_at_desc";
+let searchQ = "";
+let attendFilter = "";
+
+/* ================== HELPERS ================== */
+const $ = s => document.querySelector(s);
+const esc = s => (s==null ? "" : String(s))
+  .replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function parseApiGuests(guests){
+  // /rsvp GET retorna: {count, guests: [[created_at,name,email,attend,msg], ...]}
+  return guests.map(arr => ({
+    created_at: arr[0],
+    name: arr[1],
+    email: arr[2],
+    attend: arr[3],
+    msg: arr[4]
+  }));
+}
+
+function sortData(arr, key){
+  const data = [...arr];
+  const dir = (key.endsWith("_desc") ? -1 : 1);
+  const base = key.replace(/_(asc|desc)$/,'');
+  data.sort((a,b)=>{
+    const va = (a[base]||"").toString().toLowerCase();
+    const vb = (b[base]||"").toString().toLowerCase();
+    if(va < vb) return -1*dir;
+    if(va > vb) return 1*dir;
+    return 0;
+  });
+  return data;
+}
+
+function applyFilters(){
+  filtered = raw.filter(r=>{
+    const q = searchQ.trim().toLowerCase();
+    const hit = !q || [r.name,r.email,r.msg].some(v => (v||"").toLowerCase().includes(q));
+    const att = !attendFilter || r.attend === attendFilter;
+    return hit && att;
+  });
+  filtered = sortData(filtered, order);
+}
+
+function render(){
+  // paginação
+  const total = filtered.length;
+  const maxPage = Math.max(1, Math.ceil(total/size));
+  if(page > maxPage) page = maxPage;
+  const start = (page-1)*size;
+  const slice = filtered.slice(start, start+size);
+
+  // meta
+  $("#total").textContent = `Total: ${total}`;
+  $("#meta").textContent = `Página ${page} • mostrando até ${size} por página`;
+  $("#pageinfo").textContent = `Página ${page}/${maxPage}`;
+  $("#prev").disabled = (page<=1);
+  $("#next").disabled = (page>=maxPage);
+
+  // tabela
+  const tbody = $("#tbody");
+  if(slice.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">Sem resultados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = slice.map(r => `
+    <tr>
+      <td data-th="Data">${esc(r.created_at)}</td>
+      <td data-th="Nome">${esc(r.name)}</td>
+      <td data-th="Email"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
+      <td data-th="Presença"><span class="tag ${r.attend==='yes'?'yes':'no'}">${r.attend==='yes'?'Sim':'Não'}</span></td>
+      <td data-th="Mensagem">${esc(r.msg||'')}</td>
+    </tr>
+  `).join("");
+}
+
+/* ================== LOAD ================== */
+async function load(){
+  $("#tbody").innerHTML = `<tr><td colspan="5" class="empty">Carregando…</td></tr>`;
+  try{
+    const res = await fetch(`${API_BASE}/rsvp`);
+    const json = await res.json();
+    raw = parseApiGuests(json.guests || []);
+    applyFilters();
+    render();
+  }catch(e){
+    console.error(e);
+    $("#tbody").innerHTML = `<tr><td colspan="5" class="empty">Erro ao carregar. Verifique API_BASE e CORS.</td></tr>`;
+  }
+}
+
+/* ================== EVENTS ================== */
+$("#reload").addEventListener("click", ()=>load());
+$("#prev").addEventListener("click", ()=>{ if(page>1){ page--; render(); } });
+$("#next").addEventListener("click", ()=>{ page++; render(); });
+
+const qEl = $("#q");
+let qTimer = null;
+qEl.addEventListener("input", ()=>{
+  clearTimeout(qTimer);
+  qTimer = setTimeout(()=>{
+    searchQ = qEl.value;
+    page = 1;
+    applyFilters(); render();
+  }, 200); // debounce
+});
+
+$("#attend").addEventListener("change", e=>{
+  attendFilter = e.target.value;
+  page = 1; applyFilters(); render();
+});
+
+$("#order").addEventListener("change", e=>{
+  order = e.target.value;
+  page = 1; applyFilters(); render();
+});
+
+$("#pagesize").addEventListener("change", e=>{
+  size = parseInt(e.target.value,10) || 25;
+  page = 1; render();
+});
+
+// clique nos headers sortáveis (mobile/desktop)
+document.querySelectorAll("th.sort").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    const key = th.dataset.key;
+    const isThis = order.startsWith(key);
+    order = !isThis ? `${key}_asc` : (order.endsWith("_asc") ? `${key}_desc` : `${key}_asc`);
+    page = 1; applyFilters(); render();
+  });
+});
+
+/* init */
+load();
+</script>
+</body>
+</html>

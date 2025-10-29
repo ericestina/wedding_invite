@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Sarah & John — Wedding</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --pink-1:#fff1f5; --pink-2:#ffe4ec; --pink-3:#ffd0df;
+      --accent:#ff2f73; --accent-dark:#d81b5a; --text:#3b3b3b;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0; color:var(--text); font-family:"Lora",serif;
+      background:
+        radial-gradient(60vmin 60vmin at 20% 35%, var(--pink-3) 0, transparent 60%),
+        radial-gradient(75vmin 75vmin at 80% 40%, var(--pink-2) 0, transparent 60%),
+        linear-gradient(180deg, var(--pink-1), #ffffff);
+    }
+
+    /* Topbar */
+    .topbar{
+      position:sticky; top:0; z-index:40;
+      background:rgba(255,255,255,.6); border-bottom:1px solid #f7c8d7; backdrop-filter: blur(8px);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; justify-content:space-between; gap:18px}
+    .nav a{color:var(--text); font-weight:700; text-decoration:none; margin:0 10px}
+    .nav a:hover{color:var(--accent)}
+
+    .lang-toggle{display:flex; align-items:center; gap:10px}
+    .lang-toggle button{
+      border:none; background:var(--accent); color:#fff; padding:8px 12px; border-radius:10px;
+      cursor:pointer; font-weight:600; box-shadow:0 6px 18px rgba(255,47,115,.25)
+    }
+    .lang-toggle button[aria-pressed="true"]{background:var(--accent-dark)}
+
+    /* Botão Login integrado na navbar */
+    .lang-toggle .login-link{
+      display:inline-block;
+      padding:8px 12px;
+      background:var(--accent);
+      color:#fff;
+      border-radius:10px;
+      text-decoration:none;
+      font-weight:600;
+      box-shadow:0 6px 18px rgba(255,47,115,.25);
+      transition:background .2s ease;
+    }
+    .lang-toggle .login-link:hover{ background:var(--accent-dark); }
+
+    /* Hero */
+    .hero{min-height:68vh; display:grid; place-items:center; text-align:center; padding:38px 16px 24px}
+    .names{
+      font-family:"Great Vibes",cursive; color:var(--accent);
+      font-size: clamp(48px, 10vw, 120px); line-height:.9; margin:16px 0 6px; text-shadow:0 8px 28px rgba(255,47,115,.25)
+    }
+    .divider{display:flex; justify-content:center; align-items:center; gap:24px; margin:10px auto 18px}
+    .divider .line{height:2px; width:140px; background:linear-gradient(90deg, transparent, var(--accent), transparent)}
+    .divider .heart{color:var(--accent); font-size:22px}
+    .subtitle{font-size: clamp(18px, 2.2vw, 28px); margin:0 0 8px}
+    .save{opacity:.9; font-size: clamp(16px,2vw,22px); margin:6px 0}
+    .date{color:#b41c52; font-size: clamp(28px, 6vw, 44px); font-weight:600; margin:8px 0 18px}
+
+    .timer{display:grid; grid-template-columns:repeat(4, minmax(120px,1fr)); gap:16px; justify-items:center}
+    .tile{background:#fff; border-radius:18px; padding:24px 18px 20px; box-shadow:0 16px 40px rgba(255,47,115,.12); width:100%; max-width:210px; text-align:center}
+    .num{color:var(--accent); font-size: clamp(34px,6vw,52px); font-weight:700}
+    .label{text-transform:uppercase; letter-spacing:2px; font-size:14px; opacity:.8}
+
+    /* Sections */
+    section{padding:48px 16px}
+    .section-card{
+      max-width:1000px; margin:0 auto; background:#fff; border-radius:22px; box-shadow:0 16px 40px rgba(255,47,115,.08);
+      padding: clamp(18px, 3vw, 32px);
+    }
+    h2{margin:0 0 14px; font-size: clamp(24px, 4.5vw, 36px); color:#b41c52; text-align:center}
+    .muted{opacity:.8}
+    .two-col{display:grid; gap:24px; grid-template-columns:1fr 1fr}
+    @media(max-width:860px){ .two-col{grid-template-columns:1fr} .timer{grid-template-columns:repeat(2,1fr)} }
+    .btn{display:inline-block; text-decoration:none; color:#fff; background:var(--accent); padding:12px 16px; border-radius:12px; font-weight:700; box-shadow:0 10px 24px rgba(255,47,115,.25)}
+    .btn:hover{background:var(--accent-dark)}
+    .list{list-style:none; padding:0; margin:0}
+    .list li{padding:10px 0; border-bottom:1px dashed #f1c1d2}
+    .list a{color:var(--accent-dark); text-decoration:none; font-weight:600}
+    footer{text-align:center; padding:24px; opacity:.75}
+
+    /* Toast */
+    .toast{
+      position: fixed; left:50%; transform:translateX(-50%);
+      bottom:24px; background:#111; color:#fff; padding:12px 18px; border-radius:12px;
+      opacity:0; pointer-events:none; transition: opacity .2s ease;
+    }
+    .toast.show{opacity:1}
+    .toast.ok{background:#0a7a4b}
+    .toast.err{background:#a8163a}
+  </style>
+</head>
+<body>
+
+  <!-- TOP -->
+  <div class="topbar">
+    <div class="wrap">
+      <nav class="nav">
+        <a href="#venue" data-i18n="menuVenue">Venue</a>
+        <a href="#rsvp" data-i18n="menuRSVP">RSVP</a>
+        <a href="#gifts" data-i18n="menuGifts">Gifts</a>
+        <a href="#map" data-i18n="menuMap">Map</a>
+      </nav>
+
+      <!-- Botões de idioma + Login ALINHADOS -->
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button id="btn-en" aria-pressed="true">EN</button>
+        <button id="btn-pt" aria-pressed="false">PT</button>
+        <a href="login.html" class="login-link" title="Área dos noivos">🔒 Login</a>
+        <!-- se quiser usar tela de senha: troque por href="login.html" -->
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div>
+      <h1 class="names" id="couple">Sarah &amp; John</h1>
+      <div class="divider"><span class="line"></span><span class="heart">❤</span><span class="line"></span></div>
+      <p class="subtitle" data-i18n="subtitle">We're Getting Married</p>
+      <p class="save" data-i18n="save">Save the Date</p>
+      <p class="date" id="prettyDate">June 15, 2026</p>
+
+      <!-- COUNTDOWN -->
+      <div class="timer" aria-live="polite">
+        <div class="tile"><div class="num" id="d">00</div><div class="label" data-i18n="days">DAYS</div></div>
+        <div class="tile"><div class="num" id="h">00</div><div class="label" data-i18n="hours">HOURS</div></div>
+        <div class="tile"><div class="num" id="m">00</div><div class="label" data-i18n="minutes">MINUTES</div></div>
+        <div class="tile"><div class="num" id="s">00</div><div class="label" data-i18n="seconds">SECONDS</div></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- VENUE -->
+  <section id="venue">
+    <div class="section-card two-col">
+      <div>
+        <h2 data-i18n="venueTitle">Venue</h2>
+        <p class="muted" id="venueName"><strong>Rose Garden Hall</strong></p>
+        <p class="muted" id="venueAddr">123 Blossom Ave, Dublin</p>
+        <p class="muted"><span data-i18n="ceremony">Ceremony</span>: <strong id="cerTime">3:00 PM</strong></p>
+        <p class="muted"><span data-i18n="reception">Reception</span>: <strong id="recTime">6:00 PM</strong></p>
+        <a class="btn" href="#map" data-i18n="openMap">Open map</a>
+      </div>
+      <div>
+        <img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=1200&auto=format&fit=crop" alt="Venue" style="width:100%; border-radius:18px"/>
+      </div>
+    </div>
+  </section>
+
+  <!-- RSVP -->
+  <section id="rsvp">
+    <div class="section-card">
+      <h2 data-i18n="rsvpTitle">RSVP</h2>
+      <p class="muted" data-i18n="rsvpText">Please confirm your presence by the date below. If you have dietary requirements, let us know.</p>
+      <form id="rsvpForm" class="two-col">
+        <div>
+          <label><span data-i18n="nameLabel">Full name</span><br/>
+            <input required name="name" placeholder="Your name" style="width:100%; padding:12px; border-radius:10px; border:1px solid #f1c1d2">
+          </label><br/><br/>
+          <label><span data-i18n="emailLabel">Email</span><br/>
+            <input required type="email" name="email" placeholder="you@email.com" style="width:100%; padding:12px; border-radius:10px; border:1px solid #f1c1d2">
+          </label>
+        </div>
+        <div>
+          <label><span data-i18n="attendance">Attendance</span><br/>
+            <select name="attend" style="width:100%; padding:12px; border-radius:10px; border:1px solid #f1c1d2">
+              <option value="yes" data-i18n="yes">Yes, I’ll be there!</option>
+              <option value="no" data-i18n="no">Sorry, can’t make it</option>
+            </select>
+          </label><br/><br/>
+          <label><span data-i18n="message">Message</span> <span class="muted" data-i18n="optional">(optional)</span><br/>
+            <textarea name="msg" rows="4" placeholder="Leave a note..." style="width:100%; padding:12px; border-radius:10px; border:1px solid #f1c1d2"></textarea>
+          </label>
+        </div>
+        <div style="grid-column:1/-1; text-align:center; margin-top:6px">
+          <button class="btn" type="submit" data-i18n="send">Send RSVP</button>
+        </div>
+      </form>
+      <p id="rsvpOk" style="display:none; text-align:center; margin-top:12px; color:#0a7a4b; font-weight:700">✔</p>
+    </div>
+  </section>
+
+  <!-- GIFTS -->
+  <section id="gifts">
+    <div class="section-card">
+      <h2 data-i18n="giftsTitle">Gift Registry</h2>
+      <p class="muted" data-i18n="giftsText">Your presence is our best gift! If you wish to give us something, here are some suggestions:</p>
+      <ul class="list" id="giftList">
+        <li><a href="https://www.ikea.com/" target="_blank" rel="noopener">IKEA</a> — Home essentials</li>
+        <li><a href="https://www.amazon.co.uk/" target="_blank" rel="noopener">Amazon</a> — Our wishlist</li>
+        <li><a href="#" onclick="alertBank()" rel="noopener">Bank transfer</a> — IBAN on request</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- MAP -->
+  <section id="map">
+    <div class="section-card">
+      <h2 data-i18n="mapTitle">How to get there</h2>
+      <div style="aspect-ratio:16/9; background:#eee; border-radius:18px; overflow:hidden">
+        <iframe title="Map" width="100%" height="100%" style="border:0"
+          loading="lazy" allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps?q=Rose%20Garden%20Hall%2C%20Dublin&output=embed">
+        </iframe>
+      </div>
+      <p style="text-align:center; margin-top:12px">
+        <a class="btn" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/search/?api=1&query=Rose%20Garden%20Hall%2C%20Dublin"
+           data-i18n="openInMaps">Open in Google Maps</a>
+      </p>
+    </div>
+  </section>
+
+  <footer id="footerNote">See you there! ✨</footer>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    /************* CONFIG *************/
+    const API_BASE       = "http://localhost:8000"; // TROQUE pelo domínio da sua API
+    const COUPLE_NAMES   = "Sarah & John";
+    const EVENT_DATE_ISO = "2026-06-15T15:00:00";   // data/hora local do evento
+    const LOCATION_TZ    = "Europe/Dublin";
+
+    const VENUE = {
+      name: "Rose Garden Hall",
+      address: "123 Blossom Ave, Dublin",
+      ceremony: "3:00 PM",
+      reception: "6:00 PM",
+      mapsQuery: "Rose Garden Hall, Dublin"
+    };
+
+    /************* I18N *************/
+    const I18N = {
+      en:{
+        menuVenue:"Venue", menuRSVP:"RSVP", menuGifts:"Gifts", menuMap:"Map",
+        subtitle:"We're Getting Married", save:"Save the Date",
+        days:"DAYS", hours:"HOURS", minutes:"MINUTES", seconds:"SECONDS",
+        today:"It's today! 💍",
+        venueTitle:"Venue", ceremony:"Ceremony", reception:"Reception", openMap:"Open map",
+        rsvpTitle:"RSVP",
+        rsvpText:"Please confirm your presence by the date below. If you have dietary requirements, let us know.",
+        nameLabel:"Full name", emailLabel:"Email", attendance:"Attendance",
+        yes:"Yes, I’ll be there!", no:"Sorry, can’t make it",
+        message:"Message", optional:"(optional)", send:"Send RSVP",
+        giftsTitle:"Gift Registry", giftsText:"Your presence is our best gift! If you wish to give us something, here are some suggestions:",
+        mapTitle:"How to get there", openInMaps:"Open in Google Maps",
+        footer:"See you there! ✨",
+        ok:"Thanks! We’ve received your RSVP.",
+        okToast:"RSVP sent! Thank you ❤️",
+        errToast:"Error sending RSVP. Please try again."
+      },
+      pt:{
+        menuVenue:"Local", menuRSVP:"RSVP", menuGifts:"Presentes", menuMap:"Mapa",
+        subtitle:"Vamos Casar", save:"Reserve a Data",
+        days:"DIAS", hours:"HORAS", minutes:"MINUTOS", seconds:"SEGUNDOS",
+        today:"É hoje! 💍",
+        venueTitle:"Local", ceremony:"Cerimônia", reception:"Recepção", openMap:"Abrir mapa",
+        rsvpTitle:"RSVP",
+        rsvpText:"Por favor, confirme sua presença até a data abaixo. Se tiver restrições alimentares, avise-nos.",
+        nameLabel:"Nome completo", emailLabel:"E-mail", attendance:"Presença",
+        yes:"Sim, estarei lá!", no:"Infelizmente não poderei ir",
+        message:"Mensagem", optional:"(opcional)", send:"Enviar RSVP",
+        giftsTitle:"Lista de Presentes", giftsText:"Sua presença é o melhor presente! Se desejar presentear, aqui vão algumas sugestões:",
+        mapTitle:"Como chegar", openInMaps:"Abrir no Google Maps",
+        footer:"Esperamos você! ✨",
+        ok:"Obrigado! Recebemos seu RSVP.",
+        okToast:"Confirmação enviada! Obrigado ❤️",
+        errToast:"Erro ao enviar RSVP. Tente novamente."
+      }
+    };
+
+    /************* ELEMENTS *************/
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const el = {
+      couple: $("#couple"),
+      prettyDate: $("#prettyDate"),
+      d: $("#d"), h: $("#h"), m: $("#m"), s: $("#s"),
+      btnEn: $("#btn-en"), btnPt: $("#btn-pt"),
+      rsvpForm: $("#rsvpForm"),
+      rsvpOk: $("#rsvpOk"),
+      toast: $("#toast")
+    };
+
+    // Preencher Venue e Map
+    $("#venueName").textContent = VENUE.name;
+    $("#venueAddr").textContent = VENUE.address;
+    $("#cerTime").textContent   = VENUE.ceremony;
+    $("#recTime").textContent   = VENUE.reception;
+    document.querySelector('#map iframe').src =
+      `https://www.google.com/maps?q=${encodeURIComponent(VENUE.mapsQuery)}&output=embed`;
+    document.querySelector('#map a.btn').href =
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(VENUE.mapsQuery)}`;
+
+    /************* DATE & COUNTDOWN *************/
+    const state = {
+      lang: (navigator.language||"en").toLowerCase().startsWith("pt") ? "pt" : "en",
+      target: new Date(EVENT_DATE_ISO) // base local
+    };
+    // se por engano a data estiver no passado, empurra para o próximo ano
+    (function ensureFuture(){
+      const now = new Date();
+      if (state.target <= now) state.target.setFullYear(now.getFullYear() + 1);
+    })();
+
+    const pad2 = n => String(n).padStart(2,"0");
+
+    function renderTexts(){
+      const t = I18N[state.lang];
+      $$("[data-i18n]").forEach(node => node.textContent = t[node.dataset.i18n]);
+      el.prettyDate.textContent = new Intl.DateTimeFormat(
+        state.lang, {month:"long", day:"numeric", year:"numeric", timeZone:LOCATION_TZ}
+      ).format(state.target);
+      $("#footerNote").textContent = t.footer;
+      el.btnEn.setAttribute("aria-pressed", state.lang==="en");
+      el.btnPt.setAttribute("aria-pressed", state.lang==="pt");
+      document.documentElement.lang = state.lang;
+    }
+
+    // contador (força UTC para evitar bugs de fuso do navegador)
+    function tick(){
+      const now = new Date();
+      const targetUTC = new Date(EVENT_DATE_ISO + "Z"); // interpreta como UTC
+      let diff = targetUTC - now;
+
+      if (diff <= 0){
+        [el.d,el.h,el.m,el.s].forEach(n => n.textContent = "00");
+        el.prettyDate.textContent = I18N[state.lang].today;
+        return;
+      }
+      const sec = Math.floor(diff/1000);
+      const days = Math.floor(sec/86400);
+      const hours = Math.floor((sec%86400)/3600);
+      const minutes = Math.floor((sec%3600)/60);
+      const seconds = sec%60;
+      el.d.textContent = pad2(days);
+      el.h.textContent = pad2(hours);
+      el.m.textContent = pad2(minutes);
+      el.s.textContent = pad2(seconds);
+    }
+    setInterval(tick, 1000); tick();
+    renderTexts();
+
+    // Lang events
+    el.btnEn.addEventListener("click", ()=>{state.lang="en"; renderTexts()});
+    el.btnPt.addEventListener("click", ()=>{state.lang="pt"; renderTexts()});
+
+    /************* RSVP → BACKEND *************/
+    function showToast(msg, ok=true){
+      el.toast.textContent = msg;
+      el.toast.className = "toast show " + (ok ? "ok" : "err");
+      setTimeout(()=> el.toast.className = "toast", 2500);
+    }
+
+    el.rsvpForm.addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+
+      try {
+        const res = await fetch(`${API_BASE}/rsvp`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify(data)
+        });
+        if (res.ok){
+          el.rsvpOk.style.display = "block";
+          el.rsvpOk.textContent = I18N[state.lang].ok;
+          showToast(I18N[state.lang].okToast, true);
+          e.target.reset();
+        } else {
+          showToast(I18N[state.lang].errToast, false);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(I18N[state.lang].errToast, false);
+      }
+    });
+
+    // Gifts: bank transfer alert
+    function alertBank(){
+      alert(state.lang==="pt"
+        ? "Envie-nos uma mensagem para receber o IBAN. Obrigado!"
+        : "Send us a message to receive the IBAN. Thank you!");
+    }
+    window.alertBank = alertBank;
+  </script>
+</body>
+</html>
